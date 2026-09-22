@@ -24,10 +24,14 @@ import (
 
 func setRequiredEnv(t *testing.T) {
 	t.Helper()
+	t.Setenv("PORT", "8080")
+	t.Setenv("FRONTEND_ORIGIN", "https://waste-dashboard.example.com")
 	t.Setenv("GOOGLE_SHEET_ID", "sheet-123")
+	t.Setenv("GOOGLE_SHEET_RANGE", "Sheet1!A2:H")
 	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_OAUTH_CLIENT_SECRET", "client-secret")
 	t.Setenv("GOOGLE_OAUTH_REFRESH_TOKEN", "refresh-token")
+	t.Setenv("CACHE_TTL_SECONDS", "300")
 }
 
 func TestLoad_MissingRequired(t *testing.T) {
@@ -35,14 +39,23 @@ func TestLoad_MissingRequired(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error when required env vars are unset")
 	}
-	for _, want := range []string{"GOOGLE_SHEET_ID", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"} {
+	for _, want := range []string{
+		"PORT",
+		"FRONTEND_ORIGIN",
+		"GOOGLE_SHEET_ID",
+		"GOOGLE_SHEET_RANGE",
+		"GOOGLE_OAUTH_CLIENT_ID",
+		"GOOGLE_OAUTH_CLIENT_SECRET",
+		"GOOGLE_OAUTH_REFRESH_TOKEN",
+		"CACHE_TTL_SECONDS",
+	} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("expected error to mention %s, got: %v", want, err)
 		}
 	}
 }
 
-func TestLoad_Defaults(t *testing.T) {
+func TestLoad_Success(t *testing.T) {
 	setRequiredEnv(t)
 
 	cfg, err := Load()
@@ -53,21 +66,21 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Port != "8080" {
 		t.Errorf("Port = %q, want 8080", cfg.Port)
 	}
-	if cfg.CORSAllowedOrigin != "*" {
-		t.Errorf("CORSAllowedOrigin = %q, want *", cfg.CORSAllowedOrigin)
+	if cfg.CORSAllowedOrigin != "https://waste-dashboard.example.com" {
+		t.Errorf("CORSAllowedOrigin = %q, want https://waste-dashboard.example.com", cfg.CORSAllowedOrigin)
 	}
 	if cfg.CacheTTL != 300*time.Second {
 		t.Errorf("CacheTTL = %v, want 300s", cfg.CacheTTL)
 	}
-	if cfg.Sheets.Range != "Sheet1!A2:F" {
-		t.Errorf("Sheets.Range = %q, want Sheet1!A2:F", cfg.Sheets.Range)
+	if cfg.Sheets.Range != "Sheet1!A2:H" {
+		t.Errorf("Sheets.Range = %q, want Sheet1!A2:H", cfg.Sheets.Range)
 	}
 	if cfg.Sheets.SpreadsheetID != "sheet-123" {
 		t.Errorf("Sheets.SpreadsheetID = %q, want sheet-123", cfg.Sheets.SpreadsheetID)
 	}
 }
 
-func TestLoad_Overrides(t *testing.T) {
+func TestLoad_CustomValues(t *testing.T) {
 	setRequiredEnv(t)
 	t.Setenv("PORT", "9090")
 	t.Setenv("FRONTEND_ORIGIN", "https://example.com")

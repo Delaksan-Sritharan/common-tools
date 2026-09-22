@@ -38,9 +38,11 @@ type Config struct {
 	Sheets            sheets.Config
 }
 
-// Load reads required GOOGLE_* variables and returns an error listing every
-// missing one. PORT, FRONTEND_ORIGIN, GOOGLE_SHEET_RANGE and
-// CACHE_TTL_SECONDS have local defaults.
+// Load reads every variable listed in .env.example and returns an error
+// listing all that are missing or invalid. None has a local default: a
+// value silently substituted for an unset variable (e.g. FRONTEND_ORIGIN
+// falling back to an open "*" CORS policy) is exactly the kind of
+// misconfiguration that should fail loudly instead of shipping quietly.
 func Load() (Config, error) {
 	var missing []string
 	require := func(key string) string {
@@ -51,35 +53,39 @@ func Load() (Config, error) {
 		return v
 	}
 
-	cfg := Config{
-		Port:              envOrDefault("PORT", "8080"),
-		CORSAllowedOrigin: envOrDefault("FRONTEND_ORIGIN", "*"),
-		Sheets: sheets.Config{
-			SpreadsheetID: require("GOOGLE_SHEET_ID"),
-			Range:         envOrDefault("GOOGLE_SHEET_RANGE", "Sheet1!A2:H"),
-			ClientID:      require("GOOGLE_OAUTH_CLIENT_ID"),
-			ClientSecret:  require("GOOGLE_OAUTH_CLIENT_SECRET"),
-			RefreshToken:  require("GOOGLE_OAUTH_REFRESH_TOKEN"),
-		},
-	}
-
-	cacheTTL, err := durationFromSeconds("CACHE_TTL_SECONDS", 300)
-	if err != nil {
-		return Config{}, err
-	}
-	cfg.CacheTTL = cacheTTL
+	port := require("PORT")
+	corsOrigin := require("FRONTEND_ORIGIN")
+	sheetID := require("GOOGLE_SHEET_ID")
+	sheetRange := require("GOOGLE_SHEET_RANGE")
+	clientID := require("GOOGLE_OAUTH_CLIENT_ID")
+	clientSecret := require("GOOGLE_OAUTH_CLIENT_SECRET")
+	refreshToken := require("GOOGLE_OAUTH_REFRESH_TOKEN")
+	cacheTTLRaw := require("CACHE_TTL_SECONDS")
 
 	if len(missing) > 0 {
 		return Config{}, fmt.Errorf("missing required configuration: %s", strings.Join(missing, ", "))
 	}
-	return cfg, nil
+
+	cacheTTL, err := parseSeconds("CACHE_TTL_SECONDS", cacheTTLRaw)
+	if err != nil {
+		return Config{}, err
+	}
+
+	return Config{
+		Port:              port,
+		CORSAllowedOrigin: corsOrigin,
+		CacheTTL:          cacheTTL,
+		Sheets: sheets.Config{
+			SpreadsheetID: sheetID,
+			Range:         sheetRange,
+			ClientID:      clientID,
+			ClientSecret:  clientSecret,
+			RefreshToken:  refreshToken,
+		},
+	}, nil
 }
 
-func durationFromSeconds(key string, defaultSeconds int) (time.Duration, error) {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return time.Duration(defaultSeconds) * time.Second, nil
-	}
+func parseSeconds(key, raw string) (time.Duration, error) {
 	seconds, err := strconv.Atoi(raw)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", key, err)
@@ -88,11 +94,4 @@ func durationFromSeconds(key string, defaultSeconds int) (time.Duration, error) 
 		return 0, fmt.Errorf("%s must be non-negative", key)
 	}
 	return time.Duration(seconds) * time.Second, nil
-}
-
-func envOrDefault(key, def string) string {
-	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
-		return v
-	}
-	return def
 }

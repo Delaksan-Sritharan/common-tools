@@ -81,11 +81,13 @@ npm run dev
 Create two components in the same Choreo project, pointed at this repo:
 
 - **`backend/`** as a **Service** component (buildpack: Go, entry point
-  `cmd/server`, listens on `$PORT`). `.choreo/component.yaml` and
-  `openapi.yaml` describe the component. Set `GOOGLE_OAUTH_CLIENT_ID`,
-  `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN`,
-  `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_RANGE`, and `FRONTEND_ORIGIN` (the webapp's
-  deployed URL) as component secrets/config — never commit these values.
+  `cmd/server`, listens on `$PORT`, which Choreo sets automatically).
+  `.choreo/component.yaml` and `openapi.yaml` describe the component. Every
+  variable in `.env.example` is required — `Load()` refuses to start if any
+  are unset — so set `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`,
+  `GOOGLE_OAUTH_REFRESH_TOKEN`, `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_RANGE`,
+  `CACHE_TTL_SECONDS`, and `FRONTEND_ORIGIN` (the webapp's deployed URL) as
+  component secrets/config — never commit these values.
 - **`webapp/`** as a **Web Application** component (static build: `npm run
   build`, output `dist/`). Have the deployment generate `public/config.js`
   from `public/config.js.example` with `WASTE_DASHBOARD_BACKEND_BASE_URL` set

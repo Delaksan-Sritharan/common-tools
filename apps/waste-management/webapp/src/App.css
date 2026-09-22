@@ -32,12 +32,8 @@
 }
 
 .error-message {
-  color: var(--text-secondary);
-  font-size: 1.25rem;
-}
-
-.error-message {
   color: var(--status-critical);
+  font-size: 1.25rem;
 }
 
 .app-header {

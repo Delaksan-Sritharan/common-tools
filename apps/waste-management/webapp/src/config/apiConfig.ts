@@ -24,17 +24,22 @@ declare global {
 
 export interface ApiConfig {
   backendUrl: string;
+  configError: string | null;
 }
 
+const MISSING_CONFIG_ERROR =
+  "Missing required configuration: WASTE_DASHBOARD_BACKEND_BASE_URL. " +
+  "Copy public/config.js.example to public/config.js and set it.";
+
+// Reads window.config rather than throwing, so a missing/misconfigured
+// config.js surfaces as a renderable error state (see App.tsx) instead of
+// failing module evaluation before React ever mounts the error boundary.
 export function getApiConfig(): ApiConfig {
   const backendUrl = window.config?.WASTE_DASHBOARD_BACKEND_BASE_URL;
   if (!backendUrl) {
-    throw new Error(
-      "Missing required configuration: WASTE_DASHBOARD_BACKEND_BASE_URL. " +
-        "Copy public/config.js.example to public/config.js and set it."
-    );
+    return { backendUrl: "", configError: MISSING_CONFIG_ERROR };
   }
-  return { backendUrl };
+  return { backendUrl, configError: null };
 }
 
 // Frozen at module load; import getApiConfig() directly if you ever need

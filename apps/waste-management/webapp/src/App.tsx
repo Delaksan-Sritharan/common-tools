@@ -42,7 +42,7 @@ function useClock() {
 }
 
 function App() {
-  const { data: rows, error } = useWasteData();
+  const { data: rows, error, isPending } = useWasteData();
   const now = useClock();
 
   if (error && !rows) {
@@ -53,12 +53,20 @@ function App() {
     );
   }
 
-  if (!rows || !rows.length) {
+  if (isPending) {
     return (
       <div className="app app--center">
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
           <CircularProgress size={64} thickness={3.6} />
         </Box>
+      </div>
+    );
+  }
+
+  if (!rows.length) {
+    return (
+      <div className="app app--center">
+        <p className="error-message">No waste data available.</p>
       </div>
     );
   }

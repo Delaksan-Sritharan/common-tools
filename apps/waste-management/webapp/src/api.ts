@@ -14,10 +14,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { BACKEND_BASE_URL } from "@config/apiConfig";
+import { apiConfig, BACKEND_BASE_URL } from "@config/apiConfig";
 import type { WasteRow } from "./types";
 
 export async function fetchWasteRows(): Promise<WasteRow[]> {
+  if (apiConfig.configError) {
+    throw new Error(apiConfig.configError);
+  }
   const res = await fetch(`${BACKEND_BASE_URL}/api/waste`);
   if (!res.ok) {
     throw new Error(`Backend returned ${res.status}`);
