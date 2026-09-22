@@ -41,11 +41,15 @@ function useClock() {
   return now;
 }
 
+function formatCachedTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
 function App() {
-  const { data: rows, error, isPending } = useWasteData();
+  const { data, error, isPending } = useWasteData();
   const now = useClock();
 
-  if (error && !rows) {
+  if (error && !data) {
     return (
       <div className="app app--center">
         <p className="error-message">Couldn't load waste data: {error.message}</p>
@@ -62,6 +66,8 @@ function App() {
       </div>
     );
   }
+
+  const { rows, cachedAt } = data;
 
   if (!rows.length) {
     return (
@@ -80,24 +86,32 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Wso2Logo />
-          <Divider orientation="vertical" flexItem sx={{ height: "2.4rem", alignSelf: "center" }} />
-          <Box>
-            <Typography variant="h4" fontWeight={700} sx={{ letterSpacing: "-0.01em" }}>
-              Food Waste Dashboard
-            </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Latest data: {formatLongDate(latest.date)}
-            </Typography>
+      <div className="app-top">
+        <header className="app-header">
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Wso2Logo />
+            <Divider orientation="vertical" flexItem sx={{ height: "2.4rem", alignSelf: "center" }} />
+            <Box>
+              <Typography variant="h4" fontWeight={700} sx={{ letterSpacing: "-0.01em" }}>
+                Food Waste Dashboard
+              </Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Latest data: {formatLongDate(latest.date)}
+              </Typography>
+            </Box>
           </Box>
-        </Box>
-        <Chip
-          label={now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-          className="app-header__clock"
-        />
-      </header>
+          <Chip
+            label={now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+            className="app-header__clock"
+          />
+        </header>
+
+        {error && (
+          <p className="stale-banner">
+            Couldn't refresh — showing data cached at {formatCachedTime(cachedAt)}
+          </p>
+        )}
+      </div>
 
       <div className="dashboard-body">
         <TodayPanel

@@ -15,14 +15,14 @@
 // under the License.
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchWasteRows } from "../api";
+import { fetchWasteData } from "../api";
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 export function useWasteData() {
   return useQuery({
-    queryKey: ["waste-rows"],
-    queryFn: fetchWasteRows,
+    queryKey: ["waste-data"],
+    queryFn: fetchWasteData,
     refetchInterval: REFRESH_INTERVAL_MS,
     refetchOnWindowFocus: false,
   });

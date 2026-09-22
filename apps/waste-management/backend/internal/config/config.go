@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/delaksan/waste-management/backend/internal/sheets"
+	"github.com/wso2-open-operations/common-tools/apps/waste-management/backend/internal/sheets"
 )
 
 // Config is the backend process configuration.

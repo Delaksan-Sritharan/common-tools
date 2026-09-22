@@ -23,3 +23,8 @@ export interface WasteRow {
   platesBreakfast: number | null;
   platesLunch: number | null;
 }
+
+export interface WasteData {
+  rows: WasteRow[];
+  cachedAt: string; // RFC3339 UTC timestamp of when the backend last fetched these rows
+}

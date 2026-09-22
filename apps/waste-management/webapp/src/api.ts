@@ -15,9 +15,9 @@
 // under the License.
 
 import { apiConfig, BACKEND_BASE_URL } from "@config/apiConfig";
-import type { WasteRow } from "./types";
+import type { WasteData } from "./types";
 
-export async function fetchWasteRows(): Promise<WasteRow[]> {
+export async function fetchWasteData(): Promise<WasteData> {
   if (apiConfig.configError) {
     throw new Error(apiConfig.configError);
   }
@@ -25,6 +25,5 @@ export async function fetchWasteRows(): Promise<WasteRow[]> {
   if (!res.ok) {
     throw new Error(`Backend returned ${res.status}`);
   }
-  const body = (await res.json()) as { rows: WasteRow[] };
-  return body.rows;
+  return (await res.json()) as WasteData;
 }
