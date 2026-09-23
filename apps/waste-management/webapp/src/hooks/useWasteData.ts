@@ -17,7 +17,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchWasteData } from "../api";
 
-const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 
 export function useWasteData() {
   return useQuery({

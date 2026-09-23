@@ -20,9 +20,9 @@ instead of build-time env vars.
 
 The Google Sheet stays **private**, so the Go backend holds Google OAuth2
 credentials and exposes one read-only endpoint (`GET /api/waste`) that the
-webapp polls every 5 minutes (via React Query). The backend caches sheet reads
-for 5 minutes so the TV's polling doesn't hammer the Sheets API quota. There is
-no database and no write path — this is a read-only display.
+webapp polls every hour (via React Query). The backend caches sheet reads for
+an hour so the TV's polling doesn't hammer the Sheets API quota. There is no
+database and no write path — this is a read-only display.
 
 If the sheet is ever made public, the backend could be dropped entirely in
 favor of the webapp fetching a published CSV URL directly. It's kept private
@@ -99,7 +99,7 @@ Create two components in the same Choreo project, pointed at this repo:
 
 Point the TV's browser (kiosk mode / full screen) at the deployed webapp URL.
 The layout is a fixed single screen — no scrolling, no manual interaction —
-and refreshes its data every 5 minutes on its own. It renders correctly at
+and refreshes its data every hour on its own. It renders correctly at
 both 1080p and 4K.
 
 ## Code headers
