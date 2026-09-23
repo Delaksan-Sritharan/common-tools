@@ -173,7 +173,7 @@
 .today-panel__row-unit {
   font-size: 0.85rem;
   color: var(--text-secondary);
-  padding-left: 0.3rem;
+  padding-left: 0.10rem;
   white-space: nowrap;
 }
 
