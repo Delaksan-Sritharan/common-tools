@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Waste Management Backend
+  title: Waste Management Dashboard Backend
   description: Read-only API fronting a private Google Sheet of daily food-waste entries.
   version: 1.0.0
 

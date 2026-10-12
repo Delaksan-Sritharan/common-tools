@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Package config loads the waste-management backend's process configuration
+// Package config loads the waste-management-dashboard backend's process configuration
 // from the environment. It owns all env var reads; other packages take a
 // plain Config/sheets.Config value instead of reading the environment
 // themselves.
@@ -25,7 +25,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/wso2-open-operations/common-tools/apps/waste-management/backend/internal/sheets"
+	"github.com/wso2-open-operations/common-tools/apps/waste-management-dashboard/backend/internal/sheets"
 )
 
 // Config is the backend process configuration.

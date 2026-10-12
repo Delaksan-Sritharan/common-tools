@@ -33,10 +33,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/wso2-open-operations/common-tools/apps/waste-management/backend/internal/config"
-	"github.com/wso2-open-operations/common-tools/apps/waste-management/backend/internal/handler"
-	"github.com/wso2-open-operations/common-tools/apps/waste-management/backend/internal/middleware"
-	"github.com/wso2-open-operations/common-tools/apps/waste-management/backend/internal/sheets"
+	"github.com/wso2-open-operations/common-tools/apps/waste-management-dashboard/backend/internal/config"
+	"github.com/wso2-open-operations/common-tools/apps/waste-management-dashboard/backend/internal/handler"
+	"github.com/wso2-open-operations/common-tools/apps/waste-management-dashboard/backend/internal/middleware"
+	"github.com/wso2-open-operations/common-tools/apps/waste-management-dashboard/backend/internal/sheets"
 )
 
 func main() {
@@ -68,7 +68,7 @@ func main() {
 		slog.Error("failed to bind", "port", cfg.Port, "err", err)
 		os.Exit(1)
 	}
-	slog.Info("waste-management backend started", "port", cfg.Port)
+	slog.Info("waste-management-dashboard backend started", "port", cfg.Port)
 
 	srv := &http.Server{
 		Handler: middleware.CORS(cfg.CORSAllowedOrigin,
@@ -100,7 +100,7 @@ func main() {
 		slog.Error("graceful shutdown failed", "err", err)
 		os.Exit(1)
 	}
-	slog.Info("waste-management backend stopped")
+	slog.Info("waste-management-dashboard backend stopped")
 }
 
 // loadDotEnv does a minimal parse of a .env file for local development

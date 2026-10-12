@@ -1,4 +1,4 @@
-module github.com/wso2-open-operations/common-tools/apps/waste-management/backend
+module github.com/wso2-open-operations/common-tools/apps/waste-management-dashboard/backend
 
 go 1.26.5
 
