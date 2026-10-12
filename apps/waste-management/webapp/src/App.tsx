@@ -41,7 +41,7 @@ function useClock() {
   return now;
 }
 
-function formatCachedTime(iso: string): string {
+function formatFetchedTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
@@ -67,7 +67,7 @@ function App() {
     );
   }
 
-  const { rows, cachedAt } = data;
+  const { rows, fetchedAt } = data;
 
   if (!rows.length) {
     return (
@@ -108,7 +108,7 @@ function App() {
 
         {error && (
           <p className="stale-banner">
-            Couldn't refresh — showing data cached at {formatCachedTime(cachedAt)}
+            Couldn't refresh — showing data fetched at {formatFetchedTime(fetchedAt)}
           </p>
         )}
       </div>

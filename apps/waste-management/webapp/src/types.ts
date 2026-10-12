@@ -26,5 +26,5 @@ export interface WasteRow {
 
 export interface WasteData {
   rows: WasteRow[];
-  cachedAt: string; // RFC3339 UTC timestamp of when the backend last fetched these rows
+  fetchedAt: string; // RFC3339 UTC timestamp of when the backend fetched these rows
 }
