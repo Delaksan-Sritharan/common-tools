@@ -23,9 +23,7 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/wso2-open-operations/common-tools/apps/waste-management/backend/internal/sheets"
 )
@@ -34,7 +32,6 @@ import (
 type Config struct {
 	Port              string
 	CORSAllowedOrigin string
-	CacheTTL          time.Duration
 	Sheets            sheets.Config
 }
 
@@ -60,21 +57,14 @@ func Load() (Config, error) {
 	clientID := require("GOOGLE_OAUTH_CLIENT_ID")
 	clientSecret := require("GOOGLE_OAUTH_CLIENT_SECRET")
 	refreshToken := require("GOOGLE_OAUTH_REFRESH_TOKEN")
-	cacheTTLRaw := require("CACHE_TTL_SECONDS")
 
 	if len(missing) > 0 {
 		return Config{}, fmt.Errorf("missing required configuration: %s", strings.Join(missing, ", "))
 	}
 
-	cacheTTL, err := parseSeconds("CACHE_TTL_SECONDS", cacheTTLRaw)
-	if err != nil {
-		return Config{}, err
-	}
-
 	return Config{
 		Port:              port,
 		CORSAllowedOrigin: corsOrigin,
-		CacheTTL:          cacheTTL,
 		Sheets: sheets.Config{
 			SpreadsheetID: sheetID,
 			Range:         sheetRange,
@@ -83,15 +73,4 @@ func Load() (Config, error) {
 			RefreshToken:  refreshToken,
 		},
 	}, nil
-}
-
-func parseSeconds(key, raw string) (time.Duration, error) {
-	seconds, err := strconv.Atoi(raw)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", key, err)
-	}
-	if seconds < 0 {
-		return 0, fmt.Errorf("%s must be non-negative", key)
-	}
-	return time.Duration(seconds) * time.Second, nil
 }

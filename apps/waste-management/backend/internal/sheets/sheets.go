@@ -19,16 +19,24 @@ package sheets
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	sheetsapi "google.golang.org/api/sheets/v4"
 )
+
+// tokenHTTPTimeout bounds the HTTP calls the OAuth2 token source makes when
+// refreshing an expired access token (token refreshes happen roughly
+// hourly, independent of the per-request context passed to FetchRows).
+const tokenHTTPTimeout = 15 * time.Second
 
 // WasteRow is one day's food waste entry read from the Google Sheet.
 type WasteRow struct {
@@ -92,9 +100,17 @@ type Config struct {
 	RefreshToken  string
 }
 
-// Client reads waste rows from one configured Google Sheet.
+// Client reads waste rows from one configured Google Sheet. It holds a
+// single long-lived OAuth2 token source and Sheets service, built once on
+// first use and reused across calls to FetchRows - so each request pays
+// only for the Sheets read, not a fresh token exchange and client build
+// every time. This caches the authenticated connection, not sheet data:
+// every FetchRows call still reads the sheet live.
 type Client struct {
 	cfg Config
+
+	mu  sync.Mutex
+	svc *sheetsapi.Service
 }
 
 // NewClient creates a Client for the given sheet configuration.
@@ -102,19 +118,45 @@ func NewClient(cfg Config) *Client {
 	return &Client{cfg: cfg}
 }
 
-// FetchRows reads the sheet and returns parsed, date-sorted rows.
-func (c *Client) FetchRows(ctx context.Context) ([]WasteRow, error) {
+// service lazily builds and caches the authenticated Sheets client.
+func (c *Client) service() (*sheetsapi.Service, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.svc != nil {
+		return c.svc, nil
+	}
+
 	oauthConfig := &oauth2.Config{
 		ClientID:     c.cfg.ClientID,
 		ClientSecret: c.cfg.ClientSecret,
 		Endpoint:     googleoauth.Endpoint,
 		Scopes:       []string{sheetsapi.SpreadsheetsReadonlyScope},
 	}
-	tokenSource := oauthConfig.TokenSource(ctx, &oauth2.Token{RefreshToken: c.cfg.RefreshToken})
 
-	svc, err := sheetsapi.NewService(ctx, option.WithTokenSource(tokenSource))
+	// A bounded HTTP client, not a request-scoped context: token refreshes
+	// happen roughly hourly, independent of any single FetchRows call.
+	// Config.TokenSource returns a token source that caches the current
+	// access token and only re-hits the token endpoint once it expires, as
+	// long as this same instance is reused across calls (hence storing it
+	// on Client rather than building it per request).
+	tokenCtx := context.WithValue(context.Background(), oauth2.HTTPClient, &http.Client{Timeout: tokenHTTPTimeout})
+	tokenSource := oauthConfig.TokenSource(tokenCtx, &oauth2.Token{RefreshToken: c.cfg.RefreshToken})
+
+	svc, err := sheetsapi.NewService(tokenCtx, option.WithTokenSource(tokenSource))
 	if err != nil {
 		return nil, fmt.Errorf("creating sheets client: %w", err)
+	}
+
+	c.svc = svc
+	return c.svc, nil
+}
+
+// FetchRows reads the sheet and returns parsed, date-sorted rows.
+func (c *Client) FetchRows(ctx context.Context) ([]WasteRow, error) {
+	svc, err := c.service()
+	if err != nil {
+		return nil, err
 	}
 
 	resp, err := svc.Spreadsheets.Values.Get(c.cfg.SpreadsheetID, c.cfg.Range).Context(ctx).Do()

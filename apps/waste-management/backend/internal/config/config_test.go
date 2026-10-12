@@ -19,7 +19,6 @@ package config
 import (
 	"strings"
 	"testing"
-	"time"
 )
 
 func setRequiredEnv(t *testing.T) {
@@ -31,7 +30,6 @@ func setRequiredEnv(t *testing.T) {
 	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_OAUTH_CLIENT_SECRET", "client-secret")
 	t.Setenv("GOOGLE_OAUTH_REFRESH_TOKEN", "refresh-token")
-	t.Setenv("CACHE_TTL_SECONDS", "300")
 }
 
 func TestLoad_MissingRequired(t *testing.T) {
@@ -47,7 +45,6 @@ func TestLoad_MissingRequired(t *testing.T) {
 		"GOOGLE_OAUTH_CLIENT_ID",
 		"GOOGLE_OAUTH_CLIENT_SECRET",
 		"GOOGLE_OAUTH_REFRESH_TOKEN",
-		"CACHE_TTL_SECONDS",
 	} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("expected error to mention %s, got: %v", want, err)
@@ -69,9 +66,6 @@ func TestLoad_Success(t *testing.T) {
 	if cfg.CORSAllowedOrigin != "https://waste-dashboard.example.com" {
 		t.Errorf("CORSAllowedOrigin = %q, want https://waste-dashboard.example.com", cfg.CORSAllowedOrigin)
 	}
-	if cfg.CacheTTL != 300*time.Second {
-		t.Errorf("CacheTTL = %v, want 300s", cfg.CacheTTL)
-	}
 	if cfg.Sheets.Range != "Sheet1!A2:H" {
 		t.Errorf("Sheets.Range = %q, want Sheet1!A2:H", cfg.Sheets.Range)
 	}
@@ -84,7 +78,6 @@ func TestLoad_CustomValues(t *testing.T) {
 	setRequiredEnv(t)
 	t.Setenv("PORT", "9090")
 	t.Setenv("FRONTEND_ORIGIN", "https://example.com")
-	t.Setenv("CACHE_TTL_SECONDS", "60")
 	t.Setenv("GOOGLE_SHEET_RANGE", "Sheet2!A1:G")
 
 	cfg, err := Load()
@@ -98,19 +91,7 @@ func TestLoad_CustomValues(t *testing.T) {
 	if cfg.CORSAllowedOrigin != "https://example.com" {
 		t.Errorf("CORSAllowedOrigin = %q, want https://example.com", cfg.CORSAllowedOrigin)
 	}
-	if cfg.CacheTTL != 60*time.Second {
-		t.Errorf("CacheTTL = %v, want 60s", cfg.CacheTTL)
-	}
 	if cfg.Sheets.Range != "Sheet2!A1:G" {
 		t.Errorf("Sheets.Range = %q, want Sheet2!A1:G", cfg.Sheets.Range)
-	}
-}
-
-func TestLoad_InvalidCacheTTL(t *testing.T) {
-	setRequiredEnv(t)
-	t.Setenv("CACHE_TTL_SECONDS", "not-a-number")
-
-	if _, err := Load(); err == nil {
-		t.Fatal("expected an error for a non-numeric CACHE_TTL_SECONDS")
 	}
 }

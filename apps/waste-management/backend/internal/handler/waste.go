@@ -20,7 +20,6 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/wso2-open-operations/common-tools/apps/waste-management/backend/internal/sheets"
@@ -31,20 +30,16 @@ type sheetsFetcher interface {
 	FetchRows(ctx context.Context) ([]sheets.WasteRow, error)
 }
 
-// WasteHandler serves waste rows from the configured Google Sheet, cached
-// for cacheTTL so the TV's polling doesn't hit the Sheets API on every request.
+// WasteHandler serves waste rows read directly from the configured Google
+// Sheet on every request. No caching: the webapp controls its own refresh
+// cadence, and each request reflects the sheet's current state.
 type WasteHandler struct {
-	sheets   sheetsFetcher
-	cacheTTL time.Duration
-
-	mu        sync.Mutex
-	rows      []sheets.WasteRow
-	fetchedAt time.Time
+	sheets sheetsFetcher
 }
 
 // NewWasteHandler creates a WasteHandler backed by the given Sheets client.
-func NewWasteHandler(sheetsClient sheetsFetcher, cacheTTL time.Duration) *WasteHandler {
-	return &WasteHandler{sheets: sheetsClient, cacheTTL: cacheTTL}
+func NewWasteHandler(sheetsClient sheetsFetcher) *WasteHandler {
+	return &WasteHandler{sheets: sheetsClient}
 }
 
 // wasteBody is the JSON payload for GET /api/waste.
@@ -58,30 +53,12 @@ func (h *WasteHandler) GetWaste(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
 
-	rows, fetchedAt, err := h.rowsCached(ctx)
+	rows, err := h.sheets.FetchRows(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to fetch waste data", "err", err)
 		writeError(w, http.StatusBadGateway, ErrMsgUpstream)
 		return
 	}
 
-	writeJSONValue(w, http.StatusOK, wasteBody{Rows: rows, CachedAt: fetchedAt.UTC().Format(time.RFC3339)})
-}
-
-func (h *WasteHandler) rowsCached(ctx context.Context) ([]sheets.WasteRow, time.Time, error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	if h.rows != nil && time.Since(h.fetchedAt) < h.cacheTTL {
-		return h.rows, h.fetchedAt, nil
-	}
-
-	rows, err := h.sheets.FetchRows(ctx)
-	if err != nil {
-		return nil, time.Time{}, err
-	}
-
-	h.rows = rows
-	h.fetchedAt = time.Now()
-	return h.rows, h.fetchedAt, nil
+	writeJSONValue(w, http.StatusOK, wasteBody{Rows: rows, CachedAt: time.Now().UTC().Format(time.RFC3339)})
 }

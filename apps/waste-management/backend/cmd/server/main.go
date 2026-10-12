@@ -15,8 +15,9 @@
 // under the License.
 
 // Waste-management backend: fronts a private Google Sheet with a small,
-// cached, read-only REST API for the TV dashboard. Configured via
-// environment variables (.env seeds unset keys locally).
+// read-only REST API for the TV dashboard, reading the sheet directly on
+// every request. Configured via environment variables (.env seeds unset
+// keys locally).
 package main
 
 import (
@@ -48,11 +49,19 @@ func main() {
 	}
 
 	sheetsClient := sheets.NewClient(cfg.Sheets)
-	wasteHandler := handler.NewWasteHandler(sheetsClient, cfg.CacheTTL)
+	wasteHandler := handler.NewWasteHandler(sheetsClient)
+
+	// /api/waste is public and unauthenticated, and every hit now reads the
+	// Sheets API live (no cache absorbing repeated calls). The Sheets quota
+	// belongs to one OAuth account shared by every caller, so the limit is
+	// global (not per client) - 0.5 req/s is still far above the dashboard's
+	// own one-request-per-15-minutes, but keeps total load well under the
+	// quota no matter how many clients call in.
+	rateLimitedWaste := middleware.RateLimit(0.5, 5, http.HandlerFunc(wasteHandler.GetWaste))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handler.Health)
-	mux.HandleFunc("GET /api/waste", wasteHandler.GetWaste)
+	mux.Handle("GET /api/waste", rateLimitedWaste)
 
 	ln, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {
