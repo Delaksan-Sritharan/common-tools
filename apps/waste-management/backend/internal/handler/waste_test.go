@@ -60,8 +60,8 @@ func TestWasteHandler_GetWaste_Success(t *testing.T) {
 	if len(body.Rows) != 1 || body.Rows[0].Date != "2026-01-01" {
 		t.Errorf("unexpected rows: %+v", body.Rows)
 	}
-	if body.FetchedAt == "" {
-		t.Error("expected a non-empty fetchedAt")
+	if body.CachedAt == "" {
+		t.Error("expected a non-empty cachedAt")
 	}
 }
 

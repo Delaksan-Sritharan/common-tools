@@ -44,8 +44,8 @@ func NewWasteHandler(sheetsClient sheetsFetcher) *WasteHandler {
 
 // wasteBody is the JSON payload for GET /api/waste.
 type wasteBody struct {
-	Rows      []sheets.WasteRow `json:"rows"`
-	FetchedAt string            `json:"fetchedAt"`
+	Rows     []sheets.WasteRow `json:"rows"`
+	CachedAt string            `json:"cachedAt"`
 }
 
 // GetWaste handles GET /api/waste.
@@ -60,5 +60,5 @@ func (h *WasteHandler) GetWaste(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSONValue(w, http.StatusOK, wasteBody{Rows: rows, FetchedAt: time.Now().UTC().Format(time.RFC3339)})
+	writeJSONValue(w, http.StatusOK, wasteBody{Rows: rows, CachedAt: time.Now().UTC().Format(time.RFC3339)})
 }
