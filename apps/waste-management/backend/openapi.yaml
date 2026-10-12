@@ -71,7 +71,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/WasteRow"
-        cachedAt:
+        fetchedAt:
           type: string
           format: date-time
 

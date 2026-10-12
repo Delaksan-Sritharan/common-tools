@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/wso2-open-operations/common-tools/apps/waste-management/backend/internal/sheets"
 )
@@ -44,7 +43,7 @@ func (f *fakeSheetsFetcher) FetchRows(_ context.Context) ([]sheets.WasteRow, err
 
 func TestWasteHandler_GetWaste_Success(t *testing.T) {
 	fake := &fakeSheetsFetcher{rows: []sheets.WasteRow{{Date: "2026-01-01", Breakfast: 4.4, Lunch: 23.2, Total: 27.6, Quarter: "Q1"}}}
-	h := NewWasteHandler(fake, time.Minute)
+	h := NewWasteHandler(fake)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/waste", nil)
 	rec := httptest.NewRecorder()
@@ -61,28 +60,28 @@ func TestWasteHandler_GetWaste_Success(t *testing.T) {
 	if len(body.Rows) != 1 || body.Rows[0].Date != "2026-01-01" {
 		t.Errorf("unexpected rows: %+v", body.Rows)
 	}
-	if body.CachedAt == "" {
-		t.Error("expected a non-empty cachedAt")
+	if body.FetchedAt == "" {
+		t.Error("expected a non-empty fetchedAt")
 	}
 }
 
-func TestWasteHandler_GetWaste_CachesWithinTTL(t *testing.T) {
+func TestWasteHandler_GetWaste_AlwaysFetchesFresh(t *testing.T) {
 	fake := &fakeSheetsFetcher{rows: []sheets.WasteRow{{Date: "2026-01-01"}}}
-	h := NewWasteHandler(fake, time.Minute)
+	h := NewWasteHandler(fake)
 
 	for range 3 {
 		req := httptest.NewRequest(http.MethodGet, "/api/waste", nil)
 		h.GetWaste(httptest.NewRecorder(), req)
 	}
 
-	if fake.callCount != 1 {
-		t.Errorf("FetchRows called %d times, want 1 (should serve from cache)", fake.callCount)
+	if fake.callCount != 3 {
+		t.Errorf("FetchRows called %d times, want 3 (no caching, every request hits Sheets)", fake.callCount)
 	}
 }
 
 func TestWasteHandler_GetWaste_UpstreamError(t *testing.T) {
 	fake := &fakeSheetsFetcher{err: errors.New("sheets unavailable")}
-	h := NewWasteHandler(fake, time.Minute)
+	h := NewWasteHandler(fake)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/waste", nil)
 	rec := httptest.NewRecorder()

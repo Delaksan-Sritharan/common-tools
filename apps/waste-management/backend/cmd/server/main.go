@@ -15,8 +15,9 @@
 // under the License.
 
 // Waste-management backend: fronts a private Google Sheet with a small,
-// cached, read-only REST API for the TV dashboard. Configured via
-// environment variables (.env seeds unset keys locally).
+// read-only REST API for the TV dashboard, reading the sheet directly on
+// every request. Configured via environment variables (.env seeds unset
+// keys locally).
 package main
 
 import (
@@ -48,7 +49,7 @@ func main() {
 	}
 
 	sheetsClient := sheets.NewClient(cfg.Sheets)
-	wasteHandler := handler.NewWasteHandler(sheetsClient, cfg.CacheTTL)
+	wasteHandler := handler.NewWasteHandler(sheetsClient)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handler.Health)
