@@ -20,8 +20,8 @@ instead of build-time env vars.
 
 The Google Sheet stays **private**, so the Go backend holds Google OAuth2
 credentials and exposes one read-only endpoint (`GET /api/waste`) that the
-webapp polls every hour (via React Query). The backend caches sheet reads for
-an hour so the TV's polling doesn't hammer the Sheets API quota. There is no
+webapp polls every 15 minutes (via React Query). The backend does not cache —
+every request reads the sheet directly via the Sheets API. There is no
 database and no write path — this is a read-only display.
 
 If the sheet is ever made public, the backend could be dropped entirely in
@@ -85,9 +85,9 @@ Create two components in the same Choreo project, pointed at this repo:
   `.choreo/component.yaml` and `openapi.yaml` describe the component. Every
   variable in `.env.example` is required — `Load()` refuses to start if any
   are unset — so set `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`,
-  `GOOGLE_OAUTH_REFRESH_TOKEN`, `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_RANGE`,
-  `CACHE_TTL_SECONDS`, and `FRONTEND_ORIGIN` (the webapp's deployed URL) as
-  component secrets/config — never commit these values.
+  `GOOGLE_OAUTH_REFRESH_TOKEN`, `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_RANGE`, and
+  `FRONTEND_ORIGIN` (the webapp's deployed URL) as component secrets/config —
+  never commit these values.
 - **`webapp/`** as a **Web Application** component (static build: `npm run
   build`, output `dist/`). Have the deployment generate `public/config.js`
   from `public/config.js.example` with `WASTE_DASHBOARD_BACKEND_BASE_URL` set
@@ -99,7 +99,7 @@ Create two components in the same Choreo project, pointed at this repo:
 
 Point the TV's browser (kiosk mode / full screen) at the deployed webapp URL.
 The layout is a fixed single screen — no scrolling, no manual interaction —
-and refreshes its data every hour on its own. It renders correctly at
+and refreshes its data every 15 minutes on its own. It renders correctly at
 both 1080p and 4K.
 
 ## Code headers
