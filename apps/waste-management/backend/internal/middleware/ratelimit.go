@@ -17,48 +17,24 @@
 package middleware
 
 import (
-	"net"
 	"net/http"
-	"strings"
-	"sync"
-	"time"
 
 	"golang.org/x/time/rate"
 )
 
-// visitorTTL is how long an idle IP's bucket is kept before being evicted,
-// bounding memory use under RateLimit.
-const visitorTTL = 3 * time.Minute
-
-type visitor struct {
-	limiter  *rate.Limiter
-	lastSeen time.Time
-}
-
-// RateLimit throttles requests per client IP using a token bucket, so a
-// single abusive client can't exhaust the Google Sheets quota shared by
-// every visitor to this public, unauthenticated endpoint - now that every
-// request reads the sheet live instead of being served from a cache.
+// RateLimit throttles all requests through a single shared token bucket.
+// The thing being protected is the Google Sheets quota for one OAuth
+// account, which every caller draws from together - so the limit must be
+// global, not per client: a per-IP limiter still lets one well-behaved
+// client (or a client spoofing its IP) exhaust a quota that everyone
+// shares, and it can be bypassed by forging forwarding headers. A single
+// limiter protects the quota regardless of how many distinct clients call
+// in, and can't be evaded by spoofing anything.
 func RateLimit(requestsPerSecond float64, burst int, next http.Handler) http.Handler {
-	var mu sync.Mutex
-	visitors := make(map[string]*visitor)
-
-	go evictStaleVisitors(&mu, visitors)
+	limiter := rate.NewLimiter(rate.Limit(requestsPerSecond), burst)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := clientIP(r)
-
-		mu.Lock()
-		v, ok := visitors[ip]
-		if !ok {
-			v = &visitor{limiter: rate.NewLimiter(rate.Limit(requestsPerSecond), burst)}
-			visitors[ip] = v
-		}
-		v.lastSeen = time.Now()
-		allowed := v.limiter.Allow()
-		mu.Unlock()
-
-		if !allowed {
+		if !limiter.Allow() {
 			w.Header().Set("Retry-After", "1")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusTooManyRequests)
@@ -68,35 +44,4 @@ func RateLimit(requestsPerSecond float64, burst int, next http.Handler) http.Han
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-func evictStaleVisitors(mu *sync.Mutex, visitors map[string]*visitor) {
-	for range time.Tick(visitorTTL) {
-		mu.Lock()
-		for ip, v := range visitors {
-			if time.Since(v.lastSeen) > visitorTTL {
-				delete(visitors, ip)
-			}
-		}
-		mu.Unlock()
-	}
-}
-
-// clientIP returns the request's client IP, preferring a reverse proxy's
-// forwarding headers (as set by Choreo's ingress in front of this backend)
-// over RemoteAddr, which would otherwise be the proxy's own address.
-func clientIP(r *http.Request) string {
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		if ip, _, ok := strings.Cut(fwd, ","); ok {
-			return strings.TrimSpace(ip)
-		}
-		return strings.TrimSpace(fwd)
-	}
-	if real := r.Header.Get("X-Real-IP"); real != "" {
-		return strings.TrimSpace(real)
-	}
-	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		return host
-	}
-	return r.RemoteAddr
 }

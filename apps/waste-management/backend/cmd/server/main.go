@@ -52,10 +52,12 @@ func main() {
 	wasteHandler := handler.NewWasteHandler(sheetsClient)
 
 	// /api/waste is public and unauthenticated, and every hit now reads the
-	// Sheets API live (no cache absorbing repeated calls), so it's rate
-	// limited per client IP to protect the shared Sheets quota from abuse.
-	// Generous relative to the dashboard's own 15-minute poll interval.
-	rateLimitedWaste := middleware.RateLimit(1, 5, http.HandlerFunc(wasteHandler.GetWaste))
+	// Sheets API live (no cache absorbing repeated calls). The Sheets quota
+	// belongs to one OAuth account shared by every caller, so the limit is
+	// global (not per client) - 0.5 req/s is still far above the dashboard's
+	// own one-request-per-15-minutes, but keeps total load well under the
+	// quota no matter how many clients call in.
+	rateLimitedWaste := middleware.RateLimit(0.5, 5, http.HandlerFunc(wasteHandler.GetWaste))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handler.Health)

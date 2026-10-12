@@ -30,10 +30,8 @@ func TestRateLimit_AllowsBurstThenThrottles(t *testing.T) {
 	})
 	h := RateLimit(1, 2, next)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/waste", nil)
-	req.RemoteAddr = "203.0.113.1:5555"
-
 	for i := range 2 {
+		req := httptest.NewRequest(http.MethodGet, "/api/waste", nil)
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
@@ -41,6 +39,7 @@ func TestRateLimit_AllowsBurstThenThrottles(t *testing.T) {
 		}
 	}
 
+	req := httptest.NewRequest(http.MethodGet, "/api/waste", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusTooManyRequests {
@@ -51,55 +50,23 @@ func TestRateLimit_AllowsBurstThenThrottles(t *testing.T) {
 	}
 }
 
-func TestRateLimit_TracksClientsSeparately(t *testing.T) {
+func TestRateLimit_LimitIsSharedAcrossClients(t *testing.T) {
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
 	h := RateLimit(1, 1, next)
 
 	reqA := httptest.NewRequest(http.MethodGet, "/api/waste", nil)
 	reqA.RemoteAddr = "203.0.113.1:5555"
-	reqB := httptest.NewRequest(http.MethodGet, "/api/waste", nil)
-	reqB.RemoteAddr = "203.0.113.2:5555"
-
 	recA := httptest.NewRecorder()
 	h.ServeHTTP(recA, reqA)
 	if recA.Code != http.StatusOK {
 		t.Fatalf("client A: status = %d, want %d", recA.Code, http.StatusOK)
 	}
 
+	reqB := httptest.NewRequest(http.MethodGet, "/api/waste", nil)
+	reqB.RemoteAddr = "203.0.113.2:5555"
 	recB := httptest.NewRecorder()
 	h.ServeHTTP(recB, reqB)
-	if recB.Code != http.StatusOK {
-		t.Errorf("client B: status = %d, want %d (should have its own bucket)", recB.Code, http.StatusOK)
-	}
-}
-
-func TestClientIP(t *testing.T) {
-	cases := []struct {
-		name       string
-		remoteAddr string
-		xff        string
-		xRealIP    string
-		want       string
-	}{
-		{name: "RemoteAddr only", remoteAddr: "203.0.113.1:5555", want: "203.0.113.1"},
-		{name: "X-Forwarded-For wins", remoteAddr: "10.0.0.1:5555", xff: "203.0.113.9, 10.0.0.1", want: "203.0.113.9"},
-		{name: "X-Real-IP used when no XFF", remoteAddr: "10.0.0.1:5555", xRealIP: "203.0.113.9", want: "203.0.113.9"},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/api/waste", nil)
-			req.RemoteAddr = tc.remoteAddr
-			if tc.xff != "" {
-				req.Header.Set("X-Forwarded-For", tc.xff)
-			}
-			if tc.xRealIP != "" {
-				req.Header.Set("X-Real-IP", tc.xRealIP)
-			}
-
-			if got := clientIP(req); got != tc.want {
-				t.Errorf("clientIP() = %q, want %q", got, tc.want)
-			}
-		})
+	if recB.Code != http.StatusTooManyRequests {
+		t.Errorf("client B: status = %d, want %d (shares client A's bucket)", recB.Code, http.StatusTooManyRequests)
 	}
 }
