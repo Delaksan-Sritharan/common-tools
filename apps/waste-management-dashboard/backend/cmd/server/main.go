@@ -39,6 +39,11 @@ import (
 	"github.com/wso2-open-operations/common-tools/apps/waste-management-dashboard/backend/internal/sheets"
 )
 
+// serviceName identifies this process in startup/shutdown logs. Keeping it
+// in one place means a future rename only needs to change it here, instead
+// of the log text silently drifting out of sync with log-based alerts.
+const serviceName = "waste-management-dashboard"
+
 func main() {
 	loadDotEnv(".env")
 
@@ -68,7 +73,7 @@ func main() {
 		slog.Error("failed to bind", "port", cfg.Port, "err", err)
 		os.Exit(1)
 	}
-	slog.Info("waste-management-dashboard backend started", "port", cfg.Port)
+	slog.Info(serviceName+" backend started", "port", cfg.Port)
 
 	srv := &http.Server{
 		Handler: middleware.CORS(cfg.CORSAllowedOrigin,
@@ -100,7 +105,7 @@ func main() {
 		slog.Error("graceful shutdown failed", "err", err)
 		os.Exit(1)
 	}
-	slog.Info("waste-management-dashboard backend stopped")
+	slog.Info(serviceName + " backend stopped")
 }
 
 // loadDotEnv does a minimal parse of a .env file for local development
