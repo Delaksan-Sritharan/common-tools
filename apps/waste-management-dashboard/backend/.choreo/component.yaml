@@ -1,8 +1,8 @@
 schemaVersion: 1.2
 
 endpoints:
-  - name: waste-management-backend
-    displayName: Waste Management Backend
+  - name: waste-management-dashboard-backend
+    displayName: Waste Management Dashboard Backend
     service:
       basePath: /
       port: 8080
