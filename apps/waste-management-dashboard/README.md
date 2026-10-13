@@ -78,6 +78,29 @@ npm run dev
 
 ## Deploying to Choreo
 
+> **Already have Choreo components deployed against `apps/waste-management/`?**
+> Choreo binds a component to the repo directory it was created against and
+> can't repoint an existing component to a new path, so once this directory
+> is renamed to `apps/waste-management-dashboard/`, the next build of both
+> the old Service and old Web Application components fails outright — the
+> source path they point at no longer exists. This is a cutover, not a
+> drop-in rename:
+> 1. Create two *new* Choreo components pointed at
+>    `apps/waste-management-dashboard/backend` and
+>    `apps/waste-management-dashboard/webapp`, following the steps below.
+> 2. Copy the backend's secrets/config to the new Service component:
+>    `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`,
+>    `GOOGLE_OAUTH_REFRESH_TOKEN`, `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_RANGE`.
+> 3. The new backend component gets its own public URL, different from the
+>    old one. Set `FRONTEND_ORIGIN` on it to the *new* webapp component's
+>    URL, and generate the new webapp's `public/config.js` with
+>    `WASTE_DASHBOARD_BACKEND_BASE_URL` pointing at the *new* backend's URL —
+>    do both together, since each half is useless without the other.
+> 4. Verify the new webapp loads data end-to-end, then point the TV kiosk at
+>    the new webapp URL. Only decommission the old components afterward —
+>    their next build fails regardless once this directory is gone, so
+>    there's no reason to keep them beyond confirming the new pair works.
+
 Create two components in the same Choreo project, pointed at this repo:
 
 - **`backend/`** as a **Service** component (buildpack: Go, entry point
